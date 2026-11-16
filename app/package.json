@@ -1,0 +1,18 @@
+{
+  "name": "navopulse",
+  "private": true,
+  "version": "0.1.0",
+  "description": "NavoPulse: smart city civic engagement, disaster response, and AI public assistance platform for Navotas City",
+  "packageManager": "pnpm@10.28.0",
+  "scripts": {
+    "dev": "pnpm --filter @navopulse/web dev",
+    "build": "pnpm --filter @navopulse/web build",
+    "start": "pnpm --filter @navopulse/web start",
+    "db:migrate": "pnpm --filter @navopulse/web db:migrate",
+    "db:seed": "pnpm --filter @navopulse/web db:seed",
+    "db:reset": "pnpm --filter @navopulse/web db:reset",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test"
+  }
+}

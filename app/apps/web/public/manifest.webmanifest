@@ -1,0 +1,16 @@
+{
+  "name": "NavoPulse",
+  "short_name": "NavoPulse",
+  "description": "Navotas City emergency SOS, civic reporting, and city information.",
+  "start_url": "/app",
+  "scope": "/app",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#2a2c66",
+  "lang": "fil",
+  "icons": [
+    { "src": "/brand/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

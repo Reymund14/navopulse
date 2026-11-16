@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@theme {
+  /* Palette taken from the City of Navotas seal: ribbon navy, laurel green,
+     sunburst red and rope gold. "navy" and "sea" keep their names so every
+     screen picks up the seal colours. */
+  --color-navy-50: #f2f3fa;
+  --color-navy-100: #e1e3f3;
+  --color-navy-200: #c4c7e7;
+  --color-navy-300: #9a9fd4;
+  --color-navy-400: #6d72bb;
+  --color-navy-500: #4c51a2;
+  --color-navy-600: #3b3f8c;
+  --color-navy-700: #313478;
+  --color-navy-800: #2a2c66;
+  --color-navy-900: #222352;
+  --color-navy-950: #161735;
+  --color-sea-400: #3fb065;
+  --color-sea-500: #1f9447;
+  --color-sea-600: #167f3a;
+  --color-seal-red: #d1322e;
+  --color-seal-orange: #ef6a2a;
+  --color-seal-gold: #f5d90a;
+  --color-seal-green: #167f3a;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+}
+
+/* Seal ribbon: red, gold and green bands like the seal's sunburst, rope and laurel. */
+.seal-stripe {
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-seal-red) 0 33.4%, var(--color-seal-gold) 33.4% 66.7%, var(--color-seal-green) 66.7% 100%);
+}
+
+/* Sunburst rays behind the seal on welcome screens. */
+.seal-sunburst {
+  background:
+    radial-gradient(circle at 50% 18%, rgb(245 217 10 / 0.18), transparent 38%),
+    repeating-conic-gradient(from 0deg at 50% 18%, rgb(209 50 46 / 0.10) 0deg 7.5deg, transparent 7.5deg 15deg),
+    linear-gradient(180deg, var(--color-navy-900), var(--color-navy-950));
+}
+
+/* Leaflet sits under our overlays */
+.leaflet-container {
+  font: inherit;
+  z-index: 0;
+}
+
+.np-pin {
+  border-radius: 9999px;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+}
+
+@keyframes np-pulse {
+  0% { box-shadow: 0 0 0 0 rgb(220 38 38 / 0.7); }
+  70% { box-shadow: 0 0 0 14px rgb(220 38 38 / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(220 38 38 / 0); }
+}
+.np-pulse {
+  animation: np-pulse 1.6s infinite;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+}

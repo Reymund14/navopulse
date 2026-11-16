@@ -1,0 +1,62 @@
+# Local / staging stack: PostGIS + NavoPulse web.
+#   cp .env.example .env    (then fill in secrets)
+#   docker compose up -d db
+#   docker compose run --rm migrate          # schema
+#   docker compose run --rm seed             # demo data (optional)
+#   docker compose up -d web                 # http://localhost:3000
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: navopulse
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-navopulse}
+      POSTGRES_DB: navopulse
+    ports: ["127.0.0.1:5432:5432"]   # local only; never expose the database publicly
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U navopulse"]
+      interval: 5s
+      retries: 20
+
+  migrate:
+    build: { context: ., dockerfile: apps/web/Dockerfile, target: tools }
+    profiles: [tools]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://navopulse:${POSTGRES_PASSWORD:-navopulse}@db:5432/navopulse
+    depends_on: { db: { condition: service_healthy } }
+    command: ["pnpm", "db:migrate"]
+
+  seed:
+    build: { context: ., dockerfile: apps/web/Dockerfile, target: tools }
+    profiles: [tools]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://navopulse:${POSTGRES_PASSWORD:-navopulse}@db:5432/navopulse
+    depends_on: { db: { condition: service_healthy } }
+    command: ["pnpm", "db:seed"]
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_SMS_GATEWAY_NUMBER: ${NEXT_PUBLIC_SMS_GATEWAY_NUMBER:-}
+        NEXT_PUBLIC_MAP_TILE_URL: ${NEXT_PUBLIC_MAP_TILE_URL:-}
+        NEXT_PUBLIC_MAP_ATTRIBUTION: ${NEXT_PUBLIC_MAP_ATTRIBUTION:-}
+        NEXT_PUBLIC_HOTLINE_DRRMO: ${NEXT_PUBLIC_HOTLINE_DRRMO:-}
+        NEXT_PUBLIC_HOTLINE_PNP: ${NEXT_PUBLIC_HOTLINE_PNP:-}
+        NEXT_PUBLIC_HOTLINE_BFP: ${NEXT_PUBLIC_HOTLINE_BFP:-}
+        NEXT_PUBLIC_DEMO_MODE: ${NEXT_PUBLIC_DEMO_MODE:-0}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://navopulse:${POSTGRES_PASSWORD:-navopulse}@db:5432/navopulse
+    ports: ["127.0.0.1:3000:3000"]   # put a TLS reverse proxy (Caddy/Nginx) in front
+    volumes: [uploads:/data/storage]
+    depends_on: { db: { condition: service_healthy } }
+
+volumes:
+  pgdata:
+  uploads:
