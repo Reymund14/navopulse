@@ -1,3 +1,1 @@
 "# navopulse" 
-"# dermalens" 
-"# navopulse" 
