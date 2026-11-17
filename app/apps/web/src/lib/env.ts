@@ -60,6 +60,10 @@ export const env = {
   get storageDir() {
     return opt("STORAGE_DIR") ?? `${process.cwd()}/storage`;
   },
+  /** When both are set, photos go to Supabase Storage instead of local disk. */
+  supabaseUrl: opt("SUPABASE_URL"),
+  supabaseServiceRoleKey: opt("SUPABASE_SERVICE_ROLE_KEY"),
+  supabaseStorageBucket: opt("SUPABASE_STORAGE_BUCKET") ?? "navopulse-media",
   get appUrl() {
     return opt("APP_URL") ?? "http://localhost:3000";
   },

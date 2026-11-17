@@ -93,7 +93,7 @@ tests/load/                k6 load test
 - **Raw SQL migrations with `pg` instead of an ORM.** Most of the important queries are PostGIS (point-in-polygon barangay lookup, 150 m duplicate detection, heatmaps, distance), which ORMs only pass through as raw SQL anyway.
 - **Realtime via Postgres `LISTEN/NOTIFY` + Server-Sent Events.** No extra broker to operate. For several web replicas, each replica listens independently, so it still works.
 - **Idempotent intake.** Every report carries a client-generated UUID. The offline queue, SMS fallback (the UUID is in the SMS payload) and Power Automate retries can all resend safely.
-- **Providers behind interfaces.** `SmsProvider` (console, Semaphore, Twilio), `PushProvider` (console, FCM HTTP v1) and `StorageProvider` (local disk) can be swapped by environment variable.
+- **Providers behind interfaces.** `SmsProvider` (console, Semaphore, Twilio), `PushProvider` (console, FCM HTTP v1) and `StorageProvider` (local disk or Supabase Storage) can be swapped by environment variable.
 - **Privacy by default.** Mobile numbers and reporter names are AES-256-GCM encrypted at rest with keyed-hash lookups, masked for roles that do not need them, and every reveal is audit-logged.
 
 ## Third-party services you need to connect
@@ -105,6 +105,7 @@ Everything runs without these (stubs log to the console), but a real deployment 
 | Microsoft Copilot Studio + SharePoint + Power Automate | NavoBot answers and tickets | `NAVOBOT_API_KEY` or `NAVOBOT_WEBHOOK_SECRET`; `COPILOT_TOKEN_ENDPOINT` or `DIRECTLINE_SECRET` for the embedded chat. Setup: `docs/05-navobot-copilot-studio.md` |
 | Semaphore (or Twilio) | OTP, SMS alerts, offline SOS gateway | `SMS_PROVIDER`, `SEMAPHORE_API_KEY` (or `TWILIO_*`), `SMS_INBOUND_SECRET`, `NEXT_PUBLIC_SMS_GATEWAY_NUMBER` |
 | Firebase Cloud Messaging | Push notifications | `PUSH_PROVIDER=fcm`, `FCM_SERVICE_ACCOUNT_JSON` |
+| Supabase | Postgres database and/or photo storage | `DATABASE_URL` (session pooler, `sslmode=require`); `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` for storage. PostGIS/citext/pgcrypto must be enabled (`CREATE EXTENSION` in the migration) |
 | Mapbox (optional) | Alternative base map | `NEXT_PUBLIC_MAP_TILE_URL` |
 
 ## Known limitations of this prototype
@@ -113,5 +114,5 @@ Everything runs without these (stubs log to the console), but a real deployment 
 - **Demo data is not official.** Barangay boundaries are generated (Voronoi cells clipped to a rough city outline) from approximate centroids; replace them with PSA/NAMRIA polygons via `scripts/import-boundaries.ts`. Officials, local hotline numbers and businesses are placeholders; set the real hotlines through `NEXT_PUBLIC_HOTLINE_*` only after the city confirms them.
 - Web push in the browser needs the FCM web SDK and a VAPID key; until then the PWA uses the in-app inbox and SMS fallback.
 - Rate limiting is in-process memory; put it on Redis when running more than one web replica.
-- File storage is local disk; implement `StorageProvider` for S3/R2/Azure Blob in production.
+- File storage is local disk by default; set `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` for Supabase Storage, or attach a persistent volume in production.
 - PDF export of analytics uses the browser's print-to-PDF.

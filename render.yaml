@@ -1,0 +1,53 @@
+# Render Blueprint for NavoPulse.
+#
+# Database and photo storage are Supabase, so this defines only the web service.
+# First run migrations against the Supabase database, then create this Blueprint:
+#   cd app
+#   $env:DATABASE_URL="<supabase session pooler url>"; pnpm db:migrate
+#
+# Values marked `sync: false` are prompted for in the Render Dashboard.
+# Migrations are not a pre-deploy command because the image only ships the
+# standalone Next.js bundle; run them from a developer machine instead.
+
+services:
+  - type: web
+    name: navopulse
+    runtime: docker
+    plan: 0.5c-512mb # 1c-2g if the instance runs out of memory under load
+    region: singapore
+    rootDir: app
+    dockerfilePath: apps/web/Dockerfile
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    numInstances: 1 # in-process rate limits and SSE; scale only after moving both to shared storage
+
+    envVars:
+      # Supabase -> Connect -> Session pooler, with ?sslmode=require
+      - key: DATABASE_URL
+        sync: false
+
+      # Generated as base64 256-bit values; DATA_ENCRYPTION_KEY must stay 32 bytes.
+      # Back DATA_ENCRYPTION_KEY up separately or encrypted personal data is lost.
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DATA_ENCRYPTION_KEY
+        generateValue: true
+      - key: SMS_INBOUND_SECRET
+        generateValue: true
+      - key: NAVOBOT_WEBHOOK_SECRET
+        generateValue: true
+
+      # Supabase Storage (private bucket, created on first upload)
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: navopulse-media
+
+      # Set to https://<service>.onrender.com after the first deploy
+      - key: APP_URL
+        sync: false
+
+      - key: TRUST_PROXY
+        value: "1"

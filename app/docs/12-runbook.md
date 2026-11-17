@@ -9,7 +9,7 @@ Files: `docker-compose.yml` (repo root), `apps/web/Dockerfile`, `.env.example`, 
 | Variable | Required in production | Default (dev only) | Purpose |
 |---|---|---|---|
 | `NODE_ENV` | `production` | — | Enables strict secret checks, HSTS, secure cookies, hides OTP |
-| `DATABASE_URL` | yes | `postgres://navopulse:navopulse@localhost:5432/navopulse` | PostgreSQL 16 + PostGIS |
+| `DATABASE_URL` | yes | `postgres://navopulse:navopulse@localhost:5432/navopulse` | PostgreSQL 16 + PostGIS (Supabase: use the session pooler URL with `?sslmode=require`) |
 | `SESSION_SECRET` | yes | dev string | HS256 key for session JWTs (≥ 32 random bytes) |
 | `DATA_ENCRYPTION_KEY` | yes | dev key | 32 bytes base64 for AES-256-GCM and lookup hashes. `openssl rand -base64 32`. **Losing it makes encrypted numbers unreadable; changing it breaks lookups.** |
 | `NAVOBOT_WEBHOOK_SECRET` | yes | `dev-navobot-secret` | HMAC secret for NavoBot webhook |
@@ -20,7 +20,9 @@ Files: `docker-compose.yml` (repo root), `apps/web/Dockerfile`, `.env.example`, 
 | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` | if twilio | — | Twilio credentials |
 | `PUSH_PROVIDER` | — | `console` | `console` or `fcm` |
 | `FCM_SERVICE_ACCOUNT_JSON` | if fcm | — | Firebase service-account JSON (one line) |
-| `STORAGE_DIR` | — | `<cwd>/storage` | Photo storage path (mount a volume) |
+| `STORAGE_DIR` | - | `<cwd>/storage` | Local photo storage path (mount a volume). Ignored when Supabase Storage is configured |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | for Supabase Storage | - | Set both to store photos in Supabase instead of local disk; the private bucket is created on first upload |
+| `SUPABASE_STORAGE_BUCKET` | - | `navopulse-media` | Bucket name used by the storage provider |
 | `APP_URL` | yes (for links) | `http://localhost:3000` | Public base URL; used in NavoBot `trackUrl` |
 | `COPILOT_TOKEN_ENDPOINT` or `DIRECTLINE_SECRET` | for live NavoBot | none | Web Chat token source; unset = demo bot |
 | `NEXT_PUBLIC_SMS_GATEWAY_NUMBER` | yes | placeholder `+639000000000` | Number the PWA texts in SMS fallback |
@@ -36,6 +38,8 @@ Files: `docker-compose.yml` (repo root), `apps/web/Dockerfile`, `.env.example`, 
 **Build-time variables.** Next.js inlines `process.env.NEXT_PUBLIC_*` into the bundle during `next build`. `.dockerignore` excludes `.env`, and `apps/web/Dockerfile` declares no build `ARG`s, so an image built as-is bakes these values as unset (placeholders for hotlines and gateway number, OSM tiles, demo mode off) regardless of the runtime `.env`. Until the Dockerfile takes build args, build with the values exported in the build stage, or verify after deployment that `/api/public/config` shows the real hotlines and gateway number.
 
 **Empty values.** `.env.example` lists every variable with an empty value. For `STORAGE_DIR`, `NEXT_PUBLIC_MAP_TILE_URL` and `NEXT_PUBLIC_HOTLINE_*`, delete the line rather than leaving it empty: `STORAGE_DIR=` in `.env` overrides the Dockerfile's `STORAGE_DIR=/data/storage` with an empty string, `env.ts` then falls back to `/app/storage` (not the `uploads` volume, and not writable by the `navopulse` user); the map and config code use `??`, so an empty string replaces the default instead of falling back to it.
+
+**Supabase.** Put the Supabase **session pooler** URL (port 5432, `?sslmode=require`) in `DATABASE_URL`. Run `pnpm db:migrate` before installing extensions from the Supabase dashboard: the migration creates `postgis`, `pgcrypto` and `citext` itself, in `public`. If PostGIS was already installed in the `extensions` schema, the unqualified `geometry`/`ST_*` names need it on the search path (`ALTER ROLE postgres SET search_path = "$user", public, extensions;`). For photo storage, set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`; the private bucket in `SUPABASE_STORAGE_BUCKET` is created on the first upload.
 
 Generate secrets:
 

@@ -14,7 +14,7 @@ Key decisions:
 
 - **PostgreSQL 16 + PostGIS**, schema in raw SQL migrations (`apps/web/db/migrations`). There is no ORM because the most important queries are spatial (`ST_Contains`, `ST_DWithin`, nearest centroid, Voronoi seeding, GeoJSON output).
 - **Realtime** = a Postgres trigger (`incidents_notify`) calls `pg_notify('incidents', …)` on every insert or update. One `LISTEN` connection per server process (`src/lib/realtime.ts`) fans events out to every open **Server-Sent Events** stream at `GET /api/incidents/stream`, filtered to what the viewer may see.
-- **Providers behind interfaces** chosen by environment variable: `SmsProvider` (console default, Semaphore, Twilio), `PushProvider` (console default, FCM HTTP v1), `StorageProvider` (local disk; an S3/R2/Azure Blob implementation can replace it).
+- **Providers behind interfaces** chosen by environment variable: `SmsProvider` (console default, Semaphore, Twilio), `PushProvider` (console default, FCM HTTP v1), `StorageProvider` (local disk by default, Supabase Storage when `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` are set).
 - **NavoBot** lives in Microsoft 365 (Copilot Studio + SharePoint + Power Automate); NavoPulse only exposes a signed webhook and a Direct Line token endpoint.
 - The **Expo native app is not built in this iteration**. It appears in the diagram as a future client of the same API; the PWA covers every citizen feature.
 
@@ -44,7 +44,7 @@ flowchart LR
 
   subgraph Data
     PG[("PostgreSQL 16 + PostGIS<br/>LISTEN/NOTIFY")]
-    FS[("StorageProvider<br/>local disk (S3/Blob later)")]
+    FS[("StorageProvider<br/>local disk or Supabase Storage")]
   end
 
   subgraph M365["Microsoft 365 tenant"]

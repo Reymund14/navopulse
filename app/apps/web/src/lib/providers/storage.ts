@@ -4,8 +4,9 @@ import { env } from "../env";
 
 /**
  * File storage abstraction. LocalDiskStorage is used for development and
- * single-server deployments; implement the same interface over S3 / R2 /
- * Azure Blob / Supabase Storage for production.
+ * single-server deployments; SupabaseStorage is used when SUPABASE_URL and
+ * SUPABASE_SERVICE_ROLE_KEY are set (bucket stays private; the app serves the
+ * files through its own authenticated /api/media route).
  */
 export interface StorageProvider {
   put(key: string, data: Buffer, contentType: string): Promise<void>;
@@ -33,9 +34,59 @@ export class LocalDiskStorage implements StorageProvider {
   }
 }
 
+/**
+ * Supabase Storage over the REST API with the service-role key. Only the server
+ * holds that key; the bucket is private and photos are streamed by /api/media.
+ */
+export class SupabaseStorage implements StorageProvider {
+  private bucketReady: Promise<void> | null = null;
+  constructor(private url: string, private key: string, private bucket: string) {}
+
+  private get base() {
+    return `${this.url.replace(/\/+$/, "")}/storage/v1`;
+  }
+  private headers(extra: Record<string, string> = {}) {
+    return { apikey: this.key, Authorization: `Bearer ${this.key}`, ...extra };
+  }
+  private objectPath(key: string) {
+    return `${this.base}/object/${this.bucket}/${key.split("/").map(encodeURIComponent).join("/")}`;
+  }
+  /** Create the private bucket once, on first upload (400/409 = already there). */
+  private ensureBucket() {
+    this.bucketReady ??= (async () => {
+      const res = await fetch(`${this.base}/bucket`, {
+        method: "POST",
+        headers: this.headers({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ id: this.bucket, name: this.bucket, public: false }),
+      });
+      if (!res.ok && res.status !== 400 && res.status !== 409) {
+        throw new Error(`Supabase bucket setup failed: ${res.status} ${await res.text()}`);
+      }
+    })();
+    return this.bucketReady;
+  }
+  async put(key: string, data: Buffer, contentType: string) {
+    await this.ensureBucket();
+    const res = await fetch(this.objectPath(key), {
+      method: "POST",
+      headers: this.headers({ "Content-Type": contentType, "x-upsert": "true" }),
+      body: new Uint8Array(data),
+    });
+    if (!res.ok) throw new Error(`Supabase upload failed: ${res.status} ${await res.text()}`);
+  }
+  async get(key: string) {
+    const res = await fetch(this.objectPath(key), { headers: this.headers() });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`Supabase download failed: ${res.status} ${await res.text()}`);
+    return Buffer.from(await res.arrayBuffer());
+  }
+}
+
 let cached: StorageProvider | null = null;
 export function storage(): StorageProvider {
-  cached ??= new LocalDiskStorage(env.storageDir);
+  cached ??= env.supabaseUrl && env.supabaseServiceRoleKey
+    ? new SupabaseStorage(env.supabaseUrl, env.supabaseServiceRoleKey, env.supabaseStorageBucket)
+    : new LocalDiskStorage(env.storageDir);
   return cached;
 }
 
