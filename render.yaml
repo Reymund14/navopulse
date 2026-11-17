@@ -13,7 +13,7 @@ services:
   - type: web
     name: navopulse
     runtime: docker
-    plan: 0.5c-512mb # 1c-2g if the instance runs out of memory under load
+    plan: free # 1c-2g if the instance runs out of memory under load
     region: singapore
     rootDir: app
     dockerfilePath: apps/web/Dockerfile

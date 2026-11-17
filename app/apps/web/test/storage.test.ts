@@ -17,6 +17,10 @@ beforeAll(async () => {
       const body = Buffer.concat(chunks);
       calls.push({ method: req.method!, url: req.url!, headers: req.headers, body });
       if (req.method === "POST" && req.url === "/storage/v1/bucket") return res.writeHead(400).end("bucket exists");
+      if (req.method === "POST" && req.url?.startsWith("/storage/v1/object/sign/navopulse-media/")) {
+        const key = req.url.slice("/storage/v1/object/sign/navopulse-media/".length);
+        return res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify({ signedURL: `/object/sign/navopulse-media/${key}?token=abc` }));
+      }
       if (req.url?.startsWith("/storage/v1/object/navopulse-media/")) {
         const key = decodeURIComponent(req.url.slice("/storage/v1/object/navopulse-media/".length));
         if (req.method === "POST") {
@@ -52,5 +56,15 @@ describe("SupabaseStorage", () => {
   it("downloads an object, and returns null for a missing key", async () => {
     await expect(api.get("report/2026-11/a b.jpg")).resolves.toEqual(Buffer.from("first"));
     await expect(api.get("report/2026-11/missing.jpg")).resolves.toBeNull();
+  });
+
+  it("signs a direct download URL with the expiry and encoded key", async () => {
+    const port = (server.address() as AddressInfo).port;
+    await expect(api.signedUrl("report/2026-11/a b.jpg", 60)).resolves.toBe(
+      `http://127.0.0.1:${port}/storage/v1/object/sign/navopulse-media/report/2026-11/a%20b.jpg?token=abc`,
+    );
+    const sign = calls.filter((c) => c.url?.startsWith("/storage/v1/object/sign/")).pop()!;
+    expect(sign.headers.authorization).toBe("Bearer service-key");
+    expect(JSON.parse(sign.body.toString())).toEqual({ expiresIn: 60 });
   });
 });

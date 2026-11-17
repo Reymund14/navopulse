@@ -64,7 +64,7 @@ export default function ReportDetail({ params }: { params: Promise<{ id: string 
             {r.media.map((m) => (
               <div key={m.id} className="relative">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`/api/media/${m.id}`} alt="" className="aspect-square w-full rounded-xl object-cover" />
+                <img src={`/api/media/${m.id}`} alt="" loading="lazy" className="aspect-square w-full rounded-xl object-cover" />
                 {m.type === "resolution" && <span className="absolute bottom-1 left-1 rounded bg-emerald-600 px-1 text-[10px] text-white">{t("resolutionPhoto")}</span>}
               </div>
             ))}

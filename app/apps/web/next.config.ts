@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
 
+// No Content-Security-Policy is set. If one is added, its `img-src` must include
+// the Supabase project host (https://<ref>.supabase.co) because /api/media
+// redirects photos there when Supabase Storage is configured.
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "SAMEORIGIN" },

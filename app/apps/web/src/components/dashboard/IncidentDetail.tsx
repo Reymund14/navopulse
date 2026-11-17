@@ -118,7 +118,7 @@ export function IncidentDetail({ id, compact = false }: { id: string; compact?: 
             {inc.media.map((m) => (
               <a key={m.id} href={`/api/media/${m.id}`} target="_blank" rel="noreferrer" className="relative block">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`/api/media/${m.id}`} alt={m.type} className="h-24 w-24 rounded-lg object-cover ring-1 ring-slate-200" />
+                <img src={`/api/media/${m.id}`} alt={m.type} loading="lazy" className="h-24 w-24 rounded-lg object-cover ring-1 ring-slate-200" />
                 <span className={`absolute bottom-1 left-1 rounded px-1 text-[10px] text-white ${m.type === "resolution" ? "bg-emerald-600" : "bg-black/60"}`}>
                   {m.type === "resolution" ? "Resolution" : m.exif_lat ? "EXIF GPS" : "Report"}
                 </span>

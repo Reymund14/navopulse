@@ -11,6 +11,7 @@
     "db:migrate": "pnpm --filter @navopulse/web db:migrate",
     "db:seed": "pnpm --filter @navopulse/web db:seed",
     "db:reset": "pnpm --filter @navopulse/web db:reset",
+    "storage:check": "pnpm --filter @navopulse/web storage:check",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test"

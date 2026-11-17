@@ -5,12 +5,14 @@ import { env } from "../env";
 /**
  * File storage abstraction. LocalDiskStorage is used for development and
  * single-server deployments; SupabaseStorage is used when SUPABASE_URL and
- * SUPABASE_SERVICE_ROLE_KEY are set (bucket stays private; the app serves the
- * files through its own authenticated /api/media route).
+ * SUPABASE_SERVICE_ROLE_KEY are set (bucket stays private; /api/media checks
+ * permission and then hands the browser a signed URL).
  */
 export interface StorageProvider {
   put(key: string, data: Buffer, contentType: string): Promise<void>;
   get(key: string): Promise<Buffer | null>;
+  /** Providers that can hand out a direct download URL implement this. */
+  signedUrl?(key: string, expiresIn?: number): Promise<string>;
 }
 
 export class LocalDiskStorage implements StorageProvider {
@@ -36,7 +38,8 @@ export class LocalDiskStorage implements StorageProvider {
 
 /**
  * Supabase Storage over the REST API with the service-role key. Only the server
- * holds that key; the bucket is private and photos are streamed by /api/media.
+ * holds that key; the bucket is private. Downloads are handed to the browser as
+ * short-lived signed URLs so photo bytes never pass through this server.
  */
 export class SupabaseStorage implements StorageProvider {
   private bucketReady: Promise<void> | null = null;
@@ -48,8 +51,11 @@ export class SupabaseStorage implements StorageProvider {
   private headers(extra: Record<string, string> = {}) {
     return { apikey: this.key, Authorization: `Bearer ${this.key}`, ...extra };
   }
+  private encode(key: string) {
+    return key.split("/").map(encodeURIComponent).join("/");
+  }
   private objectPath(key: string) {
-    return `${this.base}/object/${this.bucket}/${key.split("/").map(encodeURIComponent).join("/")}`;
+    return `${this.base}/object/${this.bucket}/${this.encode(key)}`;
   }
   /** Create the private bucket once, on first upload (400/409 = already there). */
   private ensureBucket() {
@@ -64,6 +70,19 @@ export class SupabaseStorage implements StorageProvider {
       }
     })();
     return this.bucketReady;
+  }
+  /** Time-limited URL the browser fetches directly from Supabase (no bytes here). */
+  async signedUrl(key: string, expiresIn = 60) {
+    const res = await fetch(`${this.base}/object/sign/${this.bucket}/${this.encode(key)}`, {
+      method: "POST",
+      headers: this.headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ expiresIn }),
+    });
+    if (!res.ok) throw new Error(`Supabase signing failed: ${res.status} ${await res.text()}`);
+    const { signedURL, signedUrl } = (await res.json()) as { signedURL?: string; signedUrl?: string };
+    const url = signedURL ?? signedUrl;
+    if (!url) throw new Error("Supabase signing returned no URL");
+    return /^https?:\/\//.test(url) ? url : `${this.url.replace(/\/+$/, "")}/storage/v1${url}`;
   }
   async put(key: string, data: Buffer, contentType: string) {
     await this.ensureBucket();

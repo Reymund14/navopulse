@@ -22,7 +22,19 @@ export const GET = route<{ params: Promise<{ id: string }> }>(async (req, { para
     allowed = !!(await queryOne(`SELECT 1 FROM incidents i JOIN incident_categories c ON c.id = i.category_id WHERE i.id = $1 AND ${scope}`, p));
   }
   if (!allowed) throw new ApiError(404, "Not found");
-  const data = await storage().get(m.storage_key);
+  const provider = storage();
+  // Providers with direct URLs (Supabase) let the browser fetch the bytes, so
+  // photo traffic never counts against this server. Fall back to streaming.
+  if (provider.signedUrl) {
+    try {
+      const url = await provider.signedUrl(m.storage_key, 60);
+      return new Response(null, { status: 302, headers: { Location: url, "Cache-Control": "no-store" } });
+    } catch {
+      /* fall through to proxying the file */
+    }
+  }
+  const data = await provider.get(m.storage_key);
   if (!data) throw new ApiError(404, "File missing");
-  return new Response(new Uint8Array(data), { headers: { "Content-Type": m.mime_type, "Cache-Control": "private, max-age=3600", "X-Content-Type-Options": "nosniff" } });
+  // Storage keys are UUIDs and photos are never rewritten, so they are immutable.
+  return new Response(new Uint8Array(data), { headers: { "Content-Type": m.mime_type, "Cache-Control": "private, max-age=31536000, immutable", "X-Content-Type-Options": "nosniff" } });
 });
