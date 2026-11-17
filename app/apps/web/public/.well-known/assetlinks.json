@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.onrender.navopulse.twa",
+        "sha256_cert_fingerprints": ["34:0A:DB:DA:E8:F0:54:8C:57:0F:52:F4:2F:40:6A:01:79:BA:C2:21:89:30:68:D7:7A:F3:DF:71:8F:4F:82:4E"]
+      }
+    }]

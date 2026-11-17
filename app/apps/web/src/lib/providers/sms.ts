@@ -78,6 +78,7 @@ export function smsProvider(): SmsProvider {
     default:
       cached = new ConsoleSmsProvider();
   }
+  console.log(`[sms:debug] using provider=${cached.name}`);
   return cached;
 }
 

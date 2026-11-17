@@ -12,6 +12,9 @@ import { smsProvider } from "./providers/sms";
 export async function sendSms(to: string, body: string, opts: { userId?: string | null; kind: string; incidentId?: string | null; advisoryId?: string | null }) {
   const provider = smsProvider();
   const result = await provider.send(to, body);
+  const debugTo = to.replace(/\d(?=\d{4})/g, "*");
+  const debugBody = body.replace(/\d{6,}/g, "******").slice(0, 160);
+  console.log(`[sms:debug] ${provider.name} -> ${debugTo} [${opts.kind}] "${debugBody}" status=${result.status} providerId=${result.providerMessageId ?? "-"} error=${result.error ?? "-"}`);
   // Never keep one-time codes in the logs.
   if (opts.kind === "otp") body = body.replace(/\d{6}/g, "******");
   await query(

@@ -20,6 +20,7 @@ NavoPulse is a smart city civic engagement, disaster response and AI public assi
 | 12 | [Operational Runbook](12-runbook.md) | IT/MIS | Env vars, Docker Compose deployment, backups and restore drill, monitoring, SMS/push troubleshooting, incident handling, retention SQL, secret rotation |
 | 13 | [PIO Handover](13-pio-handover.md) | PIO | Maintaining the KB and NavoBot topics, monthly test and report |
 | 14 | [Demo Script](14-demo-script.md) | Presenter | Under-10-minute live defense walkthrough |
+| 15 | [Android APK Packaging](15-apk-packaging.md) | Developer | TWA build via PWABuilder or Bubblewrap, assetlinks.json, downloadable APK hosting |
 
 ## Related files
 
@@ -50,7 +51,7 @@ k6 run -e BASE_URL=http://localhost:3000 tests/load/incidents.k6.js
 
 ## Important caveats
 
-- **Native mobile app:** the Expo app in the spec is not built in this iteration; the PWA provides the citizen features.
+- **Native mobile app:** the Expo app in the spec is not built in this iteration. The citizen features are served by the PWA; the Android APK is a Trusted Web Activity wrapper around the deployed PWA, not a native app (see document 15).
 - **Placeholder data:** local hotline numbers (DRRMO, PNP, BFP), the SMS gateway number, barangay hotlines and officials, and businesses in the seed are placeholders. Barangay boundaries are generated (Voronoi) approximations, not official PSA/NAMRIA boundaries. Nothing in the seed should be presented as real.
 - **Demo-only switches:** demo accounts, on-screen OTP (`NAVOPULSE_DEMO_OTP`, dev mode) and `NEXT_PUBLIC_DEMO_MODE` must be off in production.
 - Where a document describes something that is not built yet, it says so (see the Status column in the SRS).
